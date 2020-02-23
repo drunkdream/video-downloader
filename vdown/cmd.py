@@ -9,8 +9,8 @@ import time
 
 from .m3u8 import M3U8Downloader
 
-async def download_m3u8_video(url, save_path, concurrent):
-    md = M3U8Downloader(url, save_path, concurrent)
+async def download_m3u8_video(url, save_path, concurrent, timeout, try_count):
+    md = M3U8Downloader(url, save_path, concurrent, timeout, try_count)
     time0 = time.time()
     print('Analyzing file list...')
     if await md.start():
@@ -22,12 +22,13 @@ def main():
     parser.add_argument('url', help='the url of m3u8 file')
     parser.add_argument('save_path', help='the path to save m3u8 file')
     parser.add_argument('-c', '--concurrent', dest='concurrent', type=int, default=5, help='download concurrent')
+    parser.add_argument('--timeout', dest='timeout', type=int, default=30, help='download timeout')
+    parser.add_argument('--try-count', dest='try_count', type=int, default=5, help='download retry count')
     args = parser.parse_args()
 
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(download_m3u8_video(args.url, args.save_path, args.concurrent))
+    loop.run_until_complete(download_m3u8_video(args.url, args.save_path, args.concurrent, args.timeout, args.try_count))
     for task in asyncio.Task.all_tasks():
-        print(task)
         task.cancel()
     loop.close()
 

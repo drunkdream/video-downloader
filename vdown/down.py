@@ -16,7 +16,9 @@ class AsyncDownloader(object):
     try_count = 5
     timeout = 30
 
-    def __init__(self):
+    def __init__(self, timeout=None, try_count=None):
+        self.timeout = timeout or self.__class__.timeout
+        self.try_count = try_count or self.__class__.try_count
         timeout = aiohttp.ClientTimeout(total=self.timeout)
         self._session = aiohttp.ClientSession(timeout=timeout)
 

@@ -51,13 +51,13 @@ class M3U8Downloader(object):
     '''
     max_concurrent = 20
 
-    def __init__(self, url, save_path, concurrent=None):
+    def __init__(self, url, save_path, concurrent=None, timeout=None, try_count=None):
         self._url = url
         self._save_path = save_path
         self._cache_path = 'cache'
         if not os.path.exists(self._cache_path):
             os.mkdir(self._cache_path)
-        self._downloader = AsyncDownloader()
+        self._downloader = AsyncDownloader(timeout, try_count)
         self._down_queue = queue.Queue()
         self._running = True
         self._running_tasks = 0
@@ -84,6 +84,7 @@ class M3U8Downloader(object):
                 import traceback
                 traceback.print_exc()
                 logger.error('[%s] Task %s exit unexpectly' % (self.__class__.__name__, coroutine.__name__))
+                self._running = False
 
         asyncio.ensure_future(_wrap())
 
@@ -135,6 +136,8 @@ class M3U8Downloader(object):
             print('0/%d' % video_count, end='')
             index = 0
             while True:
+                if not self._running:
+                    return False
                 print('\r%d Downloding %d/%d %s' % (self._running_tasks, video_count - self._down_queue.qsize(), video_count, '.' * (index % 3 + 1) + '   '), end='')
                 if self._running_tasks == 0:
                     break
