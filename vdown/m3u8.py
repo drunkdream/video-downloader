@@ -55,6 +55,8 @@ class M3U8Downloader(object):
         self._url = url
         self._save_path = save_path
         self._cache_path = 'cache'
+        if not os.path.exists(self._cache_path):
+            os.mkdir(self._cache_path)
         self._downloader = AsyncDownloader()
         self._down_queue = queue.Queue()
         self._running = True
