@@ -135,7 +135,7 @@ class M3U8Downloader(object):
             await self.download_m3u8(new_url)
         index = mf.sequence - self._last_sequence
         for i, it in enumerate(mf.ts_list):
-            if i < len(mf.ts_list) - index:
+            if mf.sequence and i < len(mf.ts_list) - index:
                 continue
             new_url = self.gen_url(url, it)
             self._down_queue.put(new_url)
