@@ -5,6 +5,8 @@
 
 import setuptools
 
+import vdown
+
 with open('README.md') as fp:
     README = fp.read()
 
@@ -20,7 +22,7 @@ setuptools.setup(
     name='vdown',
     license="MIT",
     description='a tool for download m3u8 videos.',
-    version='v0.0.1',
+    version=vdown.VERSION,
     long_description=README,
     url='https://github.com/drunkdream/video-downloader',
     packages=setuptools.find_packages(),
