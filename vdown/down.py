@@ -4,11 +4,13 @@
 '''
 
 import asyncio
+import ssl
 
 import aiohttp
 
 from .util import logger
 
+ssl._create_default_https_context = ssl._create_unverified_context
 
 class AsyncDownloader(object):
     '''async download
@@ -20,7 +22,9 @@ class AsyncDownloader(object):
         self.timeout = timeout or self.__class__.timeout
         self.try_count = try_count or self.__class__.try_count
         timeout = aiohttp.ClientTimeout(total=self.timeout)
-        self._session = aiohttp.ClientSession(timeout=timeout)
+        conn = aiohttp.TCPConnector(verify_ssl=False)
+        self._session = aiohttp.ClientSession(connector=conn, timeout=timeout)
+        self._context = ssl._create_unverified_context() 
 
     async def download(self, url, save_path):
         logger.debug('[%s] Download %s' % (self.__class__.__name__, url))
