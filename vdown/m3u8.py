@@ -167,15 +167,17 @@ class M3U8Downloader(object):
                 if not self._running:
                     return False
                 print('\rDownloding %d/%d %s' % (len(self._ts_list) - self._running_tasks, self._video_count, '.' * (index % 3 + 1) + '   '), end='')
-                if self._running_tasks == 0:
+                if self._running_tasks == 0 and self._down_queue.empty():
+                    print('\nAll task completed')
                     break
                 await asyncio.sleep(0.5)
                 index += 1
         self._running = False
+
         await asyncio.sleep(0.5)
         
         if self._ts_list:
-            print('\nMerge viedeo files...')
+            print('\nMerge video files...')
             merge_files(self._ts_list, self._save_path)
             result = True
         await self._downloader.close()
