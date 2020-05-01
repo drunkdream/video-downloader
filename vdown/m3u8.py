@@ -37,9 +37,9 @@ class M3U8File(object):
                         self._sequence = int(line[22:])
                     continue
 
-                if line.endswith('.m3u8'):
+                if line.endswith('.m3u8') or '.m3u8?' in line:
                     self._m3u8_list.append(line)
-                elif line.endswith('.ts'):
+                elif line.endswith('.ts') or '.ts?' in line:
                     self._ts_list.append(line)
 
     @property
@@ -113,6 +113,9 @@ class M3U8Downloader(object):
 
             url = self._down_queue.get(False)
             file_name = url.split('/')[-1]
+            pos = file_name.find('?')
+            if pos > 0:
+                file_name = file_name[:pos]
             save_path = os.path.join(self._cache_path, file_name)
 
             self._ts_list.append(save_path)
