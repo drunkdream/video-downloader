@@ -3,4 +3,4 @@
 '''m3u8 video downloader
 '''
 
-VERSION = 'v0.0.3'
+VERSION = 'v0.1.0'

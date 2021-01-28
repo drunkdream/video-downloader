@@ -21,7 +21,7 @@ setuptools.setup(
     author_email="drunkdream@qq.com",
     name='vdown',
     license="MIT",
-    description='a tool for download m3u8 videos.',
+    description='A tool for download m3u8/youtube videos.',
     version=vdown.VERSION,
     long_description=README,
     url='https://github.com/drunkdream/video-downloader',
