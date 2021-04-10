@@ -60,8 +60,8 @@ def main():
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(download_video(args))
-    for task in asyncio.Task.all_tasks():
-        task.cancel()
+    # for task in getattr(asyncio.Task, "all_tasks", asyncio.all_tasks)():
+    #     task.cancel()
     loop.close()
 
 
