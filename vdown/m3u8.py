@@ -10,7 +10,7 @@ import tempfile
 import time
 
 from .down import AsyncDownloader
-from .util import logger, merge_files
+from .util import logger, aes_decode, merge_files
 
 
 class M3U8File(object):
@@ -21,12 +21,13 @@ class M3U8File(object):
         self._m3u8_list = []
         self._ts_list = []
         self._sequence = 0
+        self._encrypt_method = None
+        self._encrypt_key_url = None
         self.parse()
 
     def parse(self):
         with open(self._file_path) as fp:
             text = fp.read()
-            index = 0
             for line in text.split("\n"):
                 line = line.strip()
                 if not line:
@@ -34,12 +35,40 @@ class M3U8File(object):
                 if line[0] == "#":
                     if line[1:].startswith("EXT-X-MEDIA-SEQUENCE:"):
                         self._sequence = int(line[22:])
+                    elif line[1:].startswith("EXT-X-KEY:"):
+                        items = line[1:].split(":", 1)[1].split(",")
+                        for it in items:
+                            key, value = it.split("=", 1)
+                            if key == "METHOD":
+                                self._encrypt_method = value
+                                if self._encrypt_method != "AES-128":
+                                    raise NotImplementedError(
+                                        "Not supported encrypt method: %s"
+                                        % self._encrypt_method
+                                    )
+                            elif key == "URI":
+                                self._encrypt_key_url = value
+                                if (
+                                    self._encrypt_key_url[0] == '"'
+                                    and self._encrypt_key_url[-1] == '"'
+                                ):
+                                    self._encrypt_key_url = self._encrypt_key_url[1:-1]
+                            else:
+                                raise NotImplementedError(key)
                     continue
 
                 if line.endswith(".m3u8") or ".m3u8?" in line:
                     self._m3u8_list.append(line)
                 else:
                     self._ts_list.append(line)
+
+    @property
+    def encrypt_method(self):
+        return self._encrypt_method
+
+    @property
+    def encrypt_key_url(self):
+        return self._encrypt_key_url
 
     @property
     def sequence(self):
@@ -71,6 +100,7 @@ class M3U8Downloader(object):
         self._recording = True
         self._running_tasks = 0
         self._ts_list = []
+        self._encrypt_key = None
         self._video_count = 0
         self._last_sequence = 0
         self.start_task(self.download_task())
@@ -130,9 +160,15 @@ class M3U8Downloader(object):
 
             async def download(url, save_path):
                 await self._downloader.download(url, save_path=save_path)
+                if self._encrypt_key:
+                    with open(save_path, "rb") as fp:
+                        data = fp.read()
+                    data = aes_decode(data, self._encrypt_key)
+                    with open(save_path, "wb") as fp:
+                        fp.write(data)
                 self._running_tasks -= 1
 
-            if not os.path.exists(save_path):
+            if not os.path.exists(save_path) or os.path.getsize(save_path) == 0:
                 self.start_task(download(url, save_path=save_path))
                 self._running_tasks += 1
 
@@ -143,6 +179,16 @@ class M3U8Downloader(object):
         save_path = tempfile.mkstemp(".m3u8")[1]
         await self._downloader.download(url, save_path=save_path)
         mf = M3U8File(save_path)
+        if mf.encrypt_method:
+            encrypt_key_url = self.gen_url(url, mf.encrypt_key_url)
+            encrypt_key_path = tempfile.mkstemp(".key")[1]
+            await self._downloader.download(encrypt_key_url, save_path=encrypt_key_path)
+            with open(encrypt_key_path, "rb") as fp:
+                self._encrypt_key = fp.read()
+            if len(self._encrypt_key) != 16:
+                raise RuntimeError("Invalid key: %s" % self._encrypt_key)
+            logger.info("[%s] Decrypt key is %s" % (self.__class__.__name__, self._encrypt_key))
+
         for it in mf.m3u8_list:
             new_url = self.gen_url(url, it)
             await self.download_m3u8(new_url)
