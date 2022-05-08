@@ -61,6 +61,8 @@ class AsyncDownloader(object):
         else:
             raise RuntimeError("Read %s failed" % url)
 
+        if content.startswith(b"\x89PNG"):
+            content = content[212:]
         if save_path:
             with open(save_path, "wb") as fp:
                 fp.write(content)
